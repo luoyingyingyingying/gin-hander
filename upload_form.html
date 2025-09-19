@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件上传表单</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .upload-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .form-title {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            box-sizing: border-box;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+        
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+        
+        .file-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px dashed #ddd;
+            border-radius: 6px;
+            background-color: #fafafa;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .file-input:hover {
+            border-color: #4CAF50;
+            background-color: #f0f8f0;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .submit-btn:hover {
+            background-color: #45a049;
+        }
+        
+        .submit-btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background-color: #f0f0f0;
+            border-radius: 3px;
+            margin-top: 10px;
+            overflow: hidden;
+            display: none;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background-color: #4CAF50;
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        .result-message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            display: none;
+        }
+        
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .file-info {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            font-size: 14px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="upload-container">
+        <h1 class="form-title">Customer 文件上传</h1>
+        
+        <form id="uploadForm" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="deviceId" class="form-label">设备ID:</label>
+                <input type="text" id="deviceId" name="device_id" class="form-input" 
+                       placeholder="请输入设备ID" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="title" class="form-label">标题:</label>
+                <input type="text" id="title" name="title" class="form-input" 
+                       placeholder="请输入标题" required>
+            </div>
+            
+            <div class="form-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="enabled" name="enabled" class="checkbox" checked>
+                    <label for="enabled" class="form-label">启用设备</label>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="file" class="form-label">选择文件:</label>
+                <input type="file" id="file" name="file" class="file-input" 
+                       accept=".txt,.csv,.json,.xml,.log" required>
+                <div class="file-info" id="fileInfo"></div>
+            </div>
+            
+            <div class="form-group">
+                <label for="description" class="form-label">文件描述 (可选):</label>
+                <textarea id="description" name="description" class="form-input" 
+                          rows="3" placeholder="请输入文件描述..."></textarea>
+            </div>
+            
+            <button type="submit" class="submit-btn" id="submitBtn">
+                上传文件
+            </button>
+            
+            <div class="progress-bar" id="progressBar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            
+            <div class="result-message" id="resultMessage"></div>
+        </form>
+    </div>
+
+    <script>
+        const form = document.getElementById('uploadForm');
+        const fileInput = document.getElementById('file');
+        const fileInfo = document.getElementById('fileInfo');
+        const submitBtn = document.getElementById('submitBtn');
+        const progressBar = document.getElementById('progressBar');
+        const progressFill = document.getElementById('progressFill');
+        const resultMessage = document.getElementById('resultMessage');
+
+        // 文件选择事件
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const fileSize = (file.size / 1024 / 1024).toFixed(2);
+                fileInfo.innerHTML = `
+                    <strong>文件名:</strong> ${file.name}<br>
+                    <strong>文件大小:</strong> ${fileSize} MB<br>
+                    <strong>文件类型:</strong> ${file.type || '未知'}
+                `;
+                fileInfo.style.display = 'block';
+            } else {
+                fileInfo.style.display = 'none';
+            }
+        });
+
+        // 表单提交事件
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            formData.append('device_id', document.getElementById('deviceId').value);
+            formData.append('title', document.getElementById('title').value);
+            formData.append('enabled', document.getElementById('enabled').checked);
+            formData.append('file', fileInput.files[0]);
+            formData.append('description', document.getElementById('description').value);
+
+            // 显示进度条
+            progressBar.style.display = 'block';
+            submitBtn.disabled = true;
+            submitBtn.textContent = '上传中...';
+            resultMessage.style.display = 'none';
+
+            // 创建XMLHttpRequest来跟踪上传进度
+            const xhr = new XMLHttpRequest();
+
+            // 上传进度事件
+            xhr.upload.addEventListener('progress', function(e) {
+                if (e.lengthComputable) {
+                    const percentComplete = (e.loaded / e.total) * 100;
+                    progressFill.style.width = percentComplete + '%';
+                }
+            });
+
+            // 上传完成事件
+            xhr.addEventListener('load', function() {
+                progressBar.style.display = 'none';
+                submitBtn.disabled = false;
+                submitBtn.textContent = '上传文件';
+                
+                if (xhr.status === 200) {
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        showMessage('文件上传成功！', 'success');
+                        form.reset();
+                        fileInfo.style.display = 'none';
+                    } catch (e) {
+                        showMessage('上传成功，但响应格式异常', 'success');
+                    }
+                } else {
+                    showMessage('上传失败: ' + xhr.statusText, 'error');
+                }
+            });
+
+            // 上传错误事件
+            xhr.addEventListener('error', function() {
+                progressBar.style.display = 'none';
+                submitBtn.disabled = false;
+                submitBtn.textContent = '上传文件';
+                showMessage('网络错误，上传失败', 'error');
+            });
+
+            // 发送请求
+            xhr.open('POST', '/api/customer/upload');
+            xhr.send(formData);
+        });
+
+        function showMessage(message, type) {
+            resultMessage.textContent = message;
+            resultMessage.className = 'result-message ' + type;
+            resultMessage.style.display = 'block';
+            
+            // 3秒后自动隐藏成功消息
+            if (type === 'success') {
+                setTimeout(() => {
+                    resultMessage.style.display = 'none';
+                }, 3000);
+            }
+        }
+    </script>
+</body>
+</html>
